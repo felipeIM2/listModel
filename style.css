@@ -86,8 +86,8 @@ button:hover {
     flex-direction: column;
     gap: 15px;
     margin-top: 20px;
-    min-height: 340px;
-    max-height: 360px; /* Defina a altura máxima para a lista */
+    min-height: 600px;
+    max-height: 600px; /* Defina a altura máxima para a lista */
     overflow-y: auto; /* Habilita o scroll vertical */
     padding-right: 10px; /* Adiciona espaço para o scroll sem afetar o conteúdo */
 }
@@ -180,6 +180,7 @@ button:hover {
     #inputText, #inputPrice {
         width: 100%;
     }
+
 
     button {
         width: 100%;
