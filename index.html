@@ -3,38 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Lista de Compras</title>
     <link rel="stylesheet" href="/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
-  <body>
-
+<body>
     <div class="container-card">
-      <div class="nav-fixed">
-        <h3>
-          LISTA DE COMPRA
-        </h3>
-        <div id="total">
-          <strong>Total: R$ 0,00</strong>
-        </div>
-        
-        <!-- <h1 class="title">Notas Editaveis</h1> -->
-        <div class="env-card">
-          <div class="inputs">
-            <input type="text" id="inputText" autocomplete="off" placeholder="Produto">
-            <input type="number" id="inputPrice" autocomplete="off" placeholder="Preço">
-          </div>
-          <div class="buttons">
-            <button id="command" >Adicionar</button>
-            <button id="commandDelet">Limpar</button>
-          </div>
-        </div>
-      </div>
-      <div id="main-list">
+        <div class="nav-fixed">
+            <h3>LISTA DE COMPRA</h3>
+            <div id="total">
+                <strong>Total: R$ 0,00</strong>
+            </div>
 
-        <div id="list">
+            <div class="env-card">
+                <div class="inputs">
+                    <select class="js-example-basic-single" name="states[]" id="inputText">
+                        <option value=""></option>
+                    </select>
+                    <input type="number" id="inputQuantity" autocomplete="off" placeholder="Quantidade">
+                    <input type="number" id="inputPrice" autocomplete="off" placeholder="Preço">
+                </div>
+                <div class="buttons">
+                    <button id="command">Adicionar</button>
+                    <button id="commandDelet">Limpar</button>
+                </div>
+            </div>
         </div>
-      </div>
+        <div id="main-list">
+            <div id="list"></div>
+        </div>
     </div>
-  </body>
- <script src="/script.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Inicializando o Select2
+            $('.js-example-basic-single').select2({
+                placeholder: "Produtos",
+                allowClear: true,
+                minimumInputLength: 2,
+                width:"140px"
+                
+            });
+
+            // Carregar lista de compras do localStorage, se houver
+            loadShoppingList();
+
+            // Adicionando produtos dinamicamente à lista de compras
+            $('#command').click(function() {
+                var product = $('#inputText').val(); 
+                var price = $('#inputPrice').val(); 
+                var quantity = $('#inputQuantity').val(); 
+
+                if (product !== "" && price !== "" && quantity !== "") {
+                    var total = (parseFloat(price) * parseInt(quantity)).toFixed(2);
+
+                    // Adiciona a opção ao Select2
+                    var option = new Option(product + " - R$ " + total, product, false, false);
+                    $('.js-example-basic-single').append(option).trigger('change');
+
+                    // Adiciona à lista de compras
+                    var listItem = {
+                        product: product,
+                        price: parseFloat(price),
+                        quantity: parseInt(quantity),
+                        total: total
+                    };
+
+                    addItemToList(listItem);
+
+                    // Salva a lista no localStorage
+                    saveShoppingList();
+
+                    // Limpa os campos após adicionar
+                    $('#inputText').val('');
+                    $('#inputPrice').val('');
+                    $('#inputQuantity').val('');
+                    updateTotal();
+                } else {
+                    alert("Por favor, preencha todos os campos!");
+                }
+            });
+
+            // Limpar a lista de compras
+            $('#commandDelet').click(function() {
+                $('#inputText').val('');
+                $('#inputPrice').val('');
+                $('#inputQuantity').val('');
+                $('.js-example-basic-single').val(null).trigger('change');
+                $('#list').html('');
+                localStorage.removeItem('shoppingList'); // Remove do localStorage
+                updateTotal();
+            });
+        });
+
+        // Função para adicionar item à lista
+        function addItemToList(item) {
+        var listItem = document.createElement("div");
+        listItem.className = "line-list";
+        listItem.innerHTML = `
+            <span>${item.product}</span>
+            <span>${item.quantity}</span>
+            <span>R$: ${item.price.toFixed(2)}</span>
+            <button onclick="removeItem(this)">Remover</button>
+        `;
+        $('#list').append(listItem);
+        
+      }
+
+        // Função para remover item da lista
+        function removeItem(button) {
+            let item = button.parentElement;
+            item.remove();
+            saveShoppingList();
+            updateTotal();
+        }
+
+        // Função para atualizar o total
+        function updateTotal() {
+          let total = 0;
+          $('#list .line-list').each(function() {
+              // Pega o valor total da última span e faz a conversão para float
+              let itemTotal = $(this).find('span').eq(2).text();  // A última span
+              let itemQuant = parseInt($(this).find('span').eq(1).text());
+              let itemTotalValue = parseFloat(itemTotal.split("R$: ")[1]); // Extrai o valor numérico
+              let totalSum = itemTotalValue * itemQuant
+             
+                
+              if (!isNaN(itemTotalValue)) {
+                  total += totalSum;  // Adiciona ao total
+              }
+          });
+          $('#total').text('Total: R$ ' + total.toFixed(2));  // Exibe o total final
+      }
+
+
+        // Função para salvar a lista no localStorage
+        function saveShoppingList() {
+          var shoppingList = [];
+          $('#list .line-list').each(function() {
+              var product = $(this).find('span').eq(0).text();
+              var price = parseFloat($(this).find('span').eq(2).text().split("R$: ")[1]);
+              var quantity = parseInt($(this).find('span').eq(1).text());
+              var total = price * quantity;  // Calculando o total corretamente
+              shoppingList.push({ product, price, quantity, total });
+          });
+          localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+      }
+
+        // Função para carregar a lista do localStorage
+        function loadShoppingList() {
+            var shoppingList = JSON.parse(localStorage.getItem('shoppingList')) || [];
+            shoppingList.forEach(function(item) {
+                addItemToList(item);
+            });
+            updateTotal();
+        }
+
+
+    </script>
+</body>
+<script src="./script.js" type="module"></script>
 </html>
